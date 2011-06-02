@@ -1,0 +1,854 @@
+%\VignetteIndexEntry{Basic uses of optmatch package}
+%\VignetteDepends{boot,optmatch}
+%\VignettePackage{optmatch}
+\documentclass[12pt,twoside]{article}
+\usepackage{color}
+\usepackage{calc}
+\usepackage{longtable}
+\usepackage{Sweave}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, filecolor=blue, pagecolor=blue, urlcolor=blue}
+\usepackage{graphicx}
+\usepackage[round]{natbib}
+\bibpunct[, ]{(}{)}{,}{a}{}{,}
+\setlength\paperwidth{8.5in}\setlength\paperheight{11in}\setlength\voffset{-1in}\setlength\hoffset{-1in}\setlength\topmargin{1in}\setlength\headheight{12pt}\setlength\headsep{0cm}\setlength\footskip{12pt+0cm}\setlength\textheight{11in-1in-1in-0cm-12pt-0cm-12pt}\setlength\oddsidemargin{1.25in}\setlength\textwidth{8.5in-1.25in-1.25in}
+\everymath{\displaystyle}
+
+\title{Basic uses of the \texttt{optmatch} package }
+\author{Yevgeniya Kleyman and Ben Hansen}
+\begin{document}
+
+\maketitle
+
+For case{}-control studies, prospective studies with a
+treatment and a control group, and studies of a few other types, a
+statistician may wish to match individuals from one predesignated
+group, the cases or the treatment group, to similar members of another
+group of control subjects in order to reduce treatment selection bias
+and estimate treatment effect. This is bipartite matching.
+
+
+
+Matching algorithms fall into two categories: greedy and
+optimal. In each case, there is a need for a criterion of
+discrimination between better and worse matches. Here, it takes form of
+a ``distance''. In greedy matching, treated units are considered in
+sequence, with each paired to the closest (as measured by distance)
+control that has not already been matched to another treated unit.
+\ This approach, also called ``nearest available'' matching, is easily
+implemented, but can result in matches that are much poorer than they
+need be. ``Optimal'' matching, on the
+other hand, assigns controls to treated units so as to minimize the
+average of distances among matched units. \ (The algorithms needed for
+optimal matching are not simply described, but they are functionally
+similar to sequential pairing procedures that reconsider previously
+made matchings at each new step.) When the number of controls is large,
+greedy and optimal matching often lead to very similar or same sets of
+matches; however optimal matching generally results in smaller
+distances within each pair \citep{gu:rose:1993}
+
+To see the difference between greedy and optimal matching,
+consider the following example. Below is a table indicating the quality
+of potential pairings among four objects.
+
+\bigskip
+
+
+\begin{longtable}[c]{|p{0.25045985in}|p{0.33655986in}|p{0.34205985in}|}
+
+\hline
+\bigskip
+           &          \emph{y}  \par &          \emph{z} \par \\
+\hline
+         \emph{w}  \par &          A \par &         A- \par \\
+\hline
+         \emph{x} \par &         A- \par &          F \par \\
+\hline
+
+
+\end{longtable}
+
+\newpage
+
+A greedy algorithm for pair matching creates pairs sequentially, at each step
+choosing the pairing that then seems best, without attending to its effect on future
+pairings. A greedy match might begin with \emph{w}, in which case \emph{w} would be paired to
+\emph{y}, as \emph{y} is \emph{w}’s nearest available counterpart. In and of itself this is a good 
+pairing,
+as the given distance matrix rates it a ``A''; but it is bad in that it leaves only \emph{z} as a
+possible match to \emph{x} . The average of its two grades is ``C''. A luckier implementation
+would begin with \emph{x} , matching it to \emph{y} and then \emph{w} to \emph{z} , for an average of 
+``A-''. Optimal
+matching removes luck from the picture, immediately matching \emph{x} to \emph{y} and \emph{w} to 
+\emph{z}.
+
+\vspace{\baselineskip}		
+
+Full matching is an especially general form of optimal
+matching. In a full match, some matched sets may contain one treated
+subject (or case) alongside one of more controls, while other matched
+sets may contain multiple treated units (cases) alongside one control.
+This distinguishes full matching from both pair matching, matching with
+ ${k\ge 2}$ controls, and matching with a variable
+number of controls, although full matchings sometimes coincide with
+matches produced by these simpler methods \citep{hansen:klopfer:2006}.
+Among all methods of matching for two groups, full matching alone is
+demonstrably optimal as a method of producing similarity with matched
+sets; this was shown by \citet{rosenbaum:1991a}, who introduced the method. It
+shares these advantages with full matching with restrictions \citep{hansen:klopfer:2006}, a procedure 
+that can also mimic pair matching and
+matching with a fixed or variable number of controls. The workhorse of
+``optmatch'' is a function, \texttt{fullmatch()}, that performs full
+matching and full matching with restrictions.
+
+\bigskip
+
+
+\bigskip
+
+The following are the functions contained in ``optmatch'' and their respective purposes:
+
+\bigskip
+\begin{description}
+\item[\texttt{
+fullmatch}]  Optimal full matching
+\item[\texttt{
+pairmatch}] Optimal pair matching
+\item[\texttt{
+matched}]   Identification of units placed into matched sets
+\item[\texttt{
+matchfailed}]  Identification of units/subclasses for which matching
+was infeasible
+\item[\texttt{
+unmatched}]  Identification of units not placed into matched
+sets
+\item[\texttt{
+matched.distances}] 
+\item[\texttt{
+makedist}] 
+\item[\texttt{
+mahal.dist}] 
+\item[\texttt{
+pscore.dist}] 
+\item[\texttt{
+maxControlsCap}]  Set thinning cap for full matching
+\item[\texttt{
+minControlsCap}]  Set thickening cap for full matching
+
+\end{description}
+
+% \bigskip
+
+<<echo=FALSE, print=FALSE, quiet=TRUE>>=
+library(optmatch)
+data(nuclearplants)
+nuclear.nopt <- nuclearplants[!nuclearplants$pt,]
+row.names(nuclear.nopt)[as.logical(nuclear.nopt$pr)] <- LETTERS[1:7]
+row.names(nuclear.nopt)[!as.logical(nuclear.nopt$pr)] <- LETTERS[8:26]
+nuclear.nopt <- nuclear.nopt[order(row.names(nuclear.nopt)),]
+attach(nuclear.nopt)
+
+plant.dist <- round(
+                  outer(rank(cap)[as.logical(pr)],
+                        rank(cap)[!as.logical(pr)],
+                        FUN=function(X,Y){abs(X-Y)}) +
+                  outer(rank(date)[as.logical(pr)],
+                        rank(date)[!as.logical(pr)],
+                        FUN=function(X,Y){abs(X-Y)})
+                    )
+
+dimnames(plant.dist) <- list(LETTERS[1:7],LETTERS[8:26])
+detach()
+@
+
+Optimal Full Matching
+
+
+\bigskip
+
+To follow this example:
+
+\bigskip
+
+
+1. Install the \texttt{optmatch} package
+
+
+2. Install the \texttt{boot} package
+
+3. Use command \texttt{
+library(optmatch)}
+
+4. Use command \texttt{help(nuclearplants,
+package='optmatch')}
+
+5. Use command \texttt{
+data(nuclearplants,
+package='optmatch')}
+
+6. Use command \texttt{
+ attach(nuclearplants)} 
+
+7. Use command \texttt{
+help(fullmatch, package='optmatch')}
+
+
+\bigskip
+
+
+The main function is of the following form:
+
+
+\bigskip
+
+\texttt{
+fullmatch(distance, subclass.indices = NULL, min.controls = 0,
+max.controls = Inf,omit.fraction = NULL, tol = 0.01)}
+
+
+\bigskip
+
+
+The only mandatory argument is  \texttt{
+distance}.
+
+\begin{description}
+\item[\texttt{distance}:] A matrix of nonnegative
+discrepancies, each indicating the permissibility and
+desirability of matching the unit corresponding to its row (a
+'treatment') to the unit corresponding to its column (a
+'control'); or a list of such matrices. \ Finite discrepancies
+indicate permissible matches, with smaller discrepancies
+indicating more desirable matches.  Matrix 'distance', or the
+matrix elements of 'distance', must have row and column names.
+\end{description}
+
+\texttt{Optmatch} has three functions to help create the above-mentioned distance matrix. 
+The functions are listed and explained below.
+
+\begin{description}
+
+\item[\texttt{makedist()}:] A function defined with respect to data and a user-supplied function to 
+compute desired distances. 
+
+\item[\texttt{mahal.dist()}:] Calculates Mahalanobis distances between treatment and control observations on
+ given variables, assembling them into a discrepancy matrix (or matrices) 
+ 
+\item[\texttt{pscore.dist()}:]Extracts scores from a fitted propensity scoring model, 
+assembling them into a discrepancy matrix (or matrices) from which \texttt{pairmatch()}
+or \texttt{fullmatch()} can determine optimal matches. 
+
+\end{description}
+
+
+It is preferable to use these functions rather than to create a distance matrix by other means.
+We will illustrate later that the above methods do the work of keeping track
+of the ordering of observations in a working data frame, while an ordinarily 
+created distance matrix would not.
+
+
+\bigskip
+
+
+\textbf{Example.} The following data relate to the 26 light water reactor (LWR)
+plants constructed in the U.S.A. in the late 1960's and early 1970's.
+The data were collected with the aim of predicting the cost of
+construction of further LWR plants. To illustrate the use of distance,
+consider the problem of matching new to refurbished nuclear
+plants, for the purpose of comparing their construction costs. In the
+nuclear plans example, seven existing{}-site plans are to be matched to
+19 new{}-site plants, in order to allow an adjusted assessment of the
+cost of building on existing versus new sites. Variables available for
+use in the analysis are cost and date of issue of construction permit.
+For the illustration, we matched only upon cap and date, but an earnest
+analysis might match on other variables as well. Also, in this
+example, we will use only the first 26 data points in the dataset, for
+which the variable pt (a binary variable where
+'1' indicates those plants
+withpartial turnkey guarantees) is set to zero.
+
+
+\bigskip
+
+\begin{minipage}[t]{.4\textwidth}
+\begin{center} 
+Existing site\\
+{%\small
+% latex table generated in R 2.1.1 by xtable 1.2-5 package
+% Wed Oct 26 18:51:47 2005
+\begin{tabular}{lrr}
+\hline
+ & date & capacity \\
+\hline
+A & 2.3 & {660}  \\
+B & 3.0 & {660}  \\
+C & 3.4 & {420}  \\
+D & 3.4 & {130}  \\
+E & 3.9 & {650}  \\
+F & 5.9 & {430}  \\
+G & 5.1 & {420}  \\
+\hline
+\end{tabular}}
+\end{center}
+\bigskip
+\bigskip
+{\footnotesize \texttt{date} is date of construction, in years after
+1965; \texttt{capacity} is net capacity of the power plant, in MWe above
+400.}
+\end{minipage}
+\begin{minipage}[t]{.4\textwidth}
+\begin{center} 
+New site\\
+{\footnotesize
+% latex table generated in R 2.1.1 by xtable 1.2-5 package
+% Wed Oct 26 18:51:47 2005
+\begin{tabular}{lrr}
+\hline
+ & date & capacity \\
+\hline
+ {H} & 3.6 & 290 \\
+ {I} & 2.3 & 660 \\
+ {J} & 3.0 & 660 \\
+ {K} & 2.9 & 110 \\
+ {L} & 3.2 & 420 \\
+ {M} & 3.4 &  60 \\
+ {N} & 3.3 & 390 \\
+ {O} & 3.6 & 160 \\
+ {P} & 3.8 & 390 \\
+ {Q} & 3.4 & 130 \\
+ {R} & 3.9 & 650 \\
+ {S} & 3.9 & 450 \\
+ {T} & 3.4 & 380 \\
+ {U} & 4.5 & 440 \\
+ {V} & 4.2 & 690 \\
+ {W} & 3.8 & 510 \\
+ {X} & 4.7 & 390 \\
+ {Y} & 5.4 & 140 \\
+ {Z} & 6.1 & 730 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{minipage}
+
+\textbf{Creating a distance matrix}
+
+\bigskip
+
+The discrepancy matrix should record plants' differences on the
+covariates, here date of construction and capacity, but the manner in
+which it combines these differences is at the discretion of the
+analyst. \ To illustrate, we calculate a distance matrix from
+the \textit{ ranks} of the date and the capacity
+variables (following section 10.3.4 of
+\citep{rosenbaum:2002}). This transforms the
+covariates as follows:
+
+
+\bigskip
+\begin{minipage}[t]{.4\textwidth}
+\begin{center} 
+Existing site\\
+{%\small
+% latex table generated in R 2.1.1 by xtable 1.2-5 package
+% Wed Oct 26 18:51:47 2005
+\begin{tabular}{lrr}
+\hline
+ & date & capacity \\
+\hline
+A & 1.5 & {22.5}   \\
+B & 4.5 & {22.5}   \\
+C & 10.0 & {13.5}  \\
+D & 10.0 &  {3.5}  \\
+E & 18.0 & {19.5}  \\
+F & 25.0 &   {15}  \\
+G & 23.0 &   {12}  \\
+\hline
+\end{tabular}}
+\end{center}
+\bigskip
+\bigskip
+{\footnotesize Here, \texttt{date} is \emph{rank of} date of
+construction, in years after 1965, and  \texttt{capacity} is 
+\emph{rank of} net capacity of the power plant, in MWe 
+above 400.}
+\end{minipage}
+\begin{minipage}[t]{.4\textwidth}
+\begin{center} 
+New site\\
+{\footnotesize
+% latex table generated in R 2.1.1 by xtable 1.2-5 package
+% Wed Oct 26 18:51:47 2005
+\begin{tabular}{lrr}
+\hline
+ & date & capacity \\
+\hline
+ {H} & 13.5 & 7.0 \\
+ {I} & 1.5 & 22.5 \\
+ {J} & 4.5 & 22.5 \\
+ {K} & 3.0 & 2.0 \\
+ {L} & 6.0 & 13.5 \\
+ {M} & 10.0 & 1.0 \\
+ {N} & 7.0 & 11.0 \\
+ {O} & 13.5 & 6.0 \\
+ {P} & 15.5 & 10.0 \\
+ {Q} & 10.0 & 3.5 \\
+ {R} & 18.0 & 19.5 \\
+ {S} & 18.0 & 17.0 \\
+ {T} & 10.0 & 8.0 \\
+ {U} & 21.0 & 16.0 \\
+ {V} & 20.0 & 25.0 \\
+ {W} & 15.5 & 18.0 \\
+ {X} & 22.0 & 9.0 \\
+ {Y} & 24.0 & 5.0 \\
+ {Z} & 26.0 & 26.0 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{minipage}
+
+\bigskip
+
+
+Now we create a matrix whose entries are the total differences
+between the ranks of dates and capacities for each pair. For example,
+the difference for the pair AH is (13.5{}-1.5)+(22.5{}-7.0) = 27.5
+(which we round to 28, for simplicity).
+
+
+\bigskip
+
+This matrix, which we name \texttt{plant.dist}, is formed as
+follows:
+
+%%% REPLACE WITH AN EXAMPLE USING MAHAL.DIST?
+
+\bigskip
+\textbf{Creating a distance matrix: direct method}
+<<>>=
+attach(nuclearplants)
+
+plant.dist <- round(
+                  abs( outer(rank(cap)[pr==1],rank(cap)[pr==0],"-") ) +
+                  abs( outer(rank(date)[pr==1],rank(date)[pr==0],"-") ) 
+                    )
+dimnames(plant.dist) <- list(row.names(nuclearplants)[pr==1],
+                             row.names(nuclearplants)[pr==0])
+detach()
+
+plant.dist
+@
+
+\bigskip
+
+\textbf{Creating a distance matrix using convenience functions}
+
+Alternatively, we can use an \texttt{optmatch} convenience function, such as \texttt{mahal.dist} or \texttt{pscore.dist} a distance.
+
+\bigskip
+<<>>=
+plant.dist.m <- mahal.dist(pr ~ cap + date, nuclearplants)
+plant.dist.m
+@
+\bigskip
+
+\textbf{Creating an Unrestricted Match}
+
+\bigskip
+
+Having created the distance matrix, we are in a position to
+match new to refurbished plants. Enter
+<<>>=
+plants.fm <- fullmatch(plant.dist)
+@
+
+The result is:
+
+<<echo=FALSE>>=
+plants.fm
+@
+where \texttt{m.1}, \texttt{m.2}, etc. are the indices for
+matches. \texttt{plants.fm} pairs A to I, B{}- to J, etc.
+
+\textbf{An advantage of the convenience functions for making distances}
+
+Compare \texttt{plants.fm} to 
+<<>>=
+(plants.fm.m <- fullmatch(plant.dist.m))
+@ 
+
+The matches are different, as one would expect, given that the distances they're based on are different.  However, you'll not that the orderings of observations they assume are different, as is indicated by the difference in their row names.  The match based on \texttt{plants.fm.m} is ordered as is the data frame it's based on, \texttt{nuclearplants}.  The ordering of \texttt{plants.fm}, in constrast, is incorrect.  Looking at the first six
+rows of our dataset below, it can be seen that the actual order of
+plants differs from the order of the \texttt{fullmatch} object.
+<<echo=FALSE>>=
+head(nuclearplants)
+@
+
+That's because the distance object \texttt{plant.dist.m} carries the
+metadata needed to reconstruct the proper ordering after matching,
+whereas the matrix \texttt{plant.dist} does not, forcing
+\texttt{fullmatch()} to guess the proper ordering of row names.  (It
+does this by sorting on the row names, which sometimes gets the right
+answer but doesn't here.)
+
+\bigskip
+
+\textbf{Matching with Restrictions}
+
+\bigskip
+
+\textbf{Matching within Calipers}
+
+
+\bigskip
+
+
+The statistician may wish to forbid the matching of certain
+treatment{}-control pairs, perhaps those that are quite dissimilar. On
+the other hand, it may be too restrictive to insist that matched units
+have the same covariates: for instance, in the nuclear plants example
+only four exactly matched pairs are possible, namely AI, BJ, DQ, and
+ER.  For continuous covariates, matching within calipers enforces
+similarity of matches (if not that they be exactly the same) 
+\citep{hansen:klopfer:2006}. 
+
+Continuing the nuclear plants illustration, we impose a caliper
+of 3 years in the date of construction. This forbids matches between
+plants whose date of construction differs by more than three years.
+Note that this may not minimize total distance, since total distance is
+a combination of date and capacity.
+
+
+\bigskip
+
+
+\textbf{Coding a caliper when using optmatch and R:}
+
+To incorporate such a caliper, invoke \texttt{fullmatch()} after modifying the
+distance matrix as follows,
+
+
+\bigskip
+
+<<>>=
+attach(nuclearplants)
+datediffs <- outer(date[pr==1], date[pr==0],"-")
+( plant.dist <- plant.dist/(abs(datediffs)<3) )
+plant.dist.m <- plant.dist.m/(abs(datediffs)<3)
+@
+
+
+The infinite entries occur where the matrix \texttt{datediffs} 
+has an entry less than $-3$ or greater than $+3$, indicating an unwanted match. 
+
+Maintaining balance between treatment and control using \texttt{min.controls} and
+\texttt{max.controls}
+
+
+\bigskip
+
+
+The statistician may wish to place restrictions on the relative
+proportions with which treated and control subjects are combined into
+matched sets, perhaps to control the variability of an estimate based
+on the matching (See \citealt{Hansen:2004}, {\S}3). The following are two
+arguments of the \texttt{fullmatch()} function that allow that
+adjustment.
+
+
+\bigskip
+
+\begin{description}
+\item[\texttt{min.controls}:] The minimum ratio of controls to
+treatments that is to be permitted within a matched set: should
+be nonnegative and finite. \ If \texttt{min.controls} is not a
+whole number, the reciprocal of a whole number, or zero, then it
+is rounded down to the nearest whole number or reciprocal of a
+whole number.
+
+\item[\texttt{ max.controls}:] The maximum ratio of controls
+to treatments that is to be permitted within a matched set: should
+be positive and numeric. If \texttt{max.controls} is not a whole
+number, the reciprocal of a whole number, or \texttt{Inf}, then
+it is rounded up to the nearest whole number or reciprocal of a
+whole number.
+\end{description}
+\bigskip
+
+
+Specifying \texttt{min.controls} and/or \texttt{max.controls}
+amounts to \textit{full matching with restrictions},
+which improves matched sets' treatment{}-control
+balance.
+
+
+To determine the largest value of min.controls with which the
+  matching problem is possible to solve, use
+minControlsCap. To get the smalles feasible value of
+max.controls, use maxControlsCap. (Note: these function calls \texttt{fullmatch}
+repeatedly, in a line search of the positive half-line.  They
+  can be time-consuming in large matching problems.)
+<<>>=
+(mincc <- minControlsCap(plant.dist))
+maxControlsCap(plant.dist, min.controls=mincc$strictest.feasible)
+@ 
+\bigskip 
+
+\textbf{Omitting a fraction of controls}
+
+\bigskip
+
+
+ The statistician may wish to discard a portion of the control
+data. This may be done if a cost issue arises or if the statistician
+would like to discard outliers on the distance.
+
+
+\bigskip
+
+\begin{description}
+\item[\texttt{omit.fraction}:] 
+Optionally, specify what fraction of controls or treated subjects
+are to be rejected.  If '\texttt{omit.fraction}' is a positive 
+fraction less than one, then '\texttt{fullmatch}' leaves up 
+to that fraction of the control reservoir unmatched.
+If \texttt{omit.fraction} is
+a negative number greater than {}-1, then \texttt{fullmatch} leaves
+up to
+{\textbar}\texttt{omit.fraction}{\textbar}
+of the treated group unmatched. Positive values are only accepted
+if \texttt{max.controls}
+{\textgreater}= 1; negative values, only if
+\texttt{min.controls} \textless= 1.  If
+\texttt{omit.fraction} is not specified, then only those 
+treated and control subjects without permissible
+matches among the control and treated subjects,
+respectively, are omitted.
+\end{description}
+
+
+\bigskip
+
+
+Suppose we wish to omit 50\% of the control subjects: 
+
+
+\bigskip
+
+<<>>=
+(plants.fm2 <- fullmatch(plant.dist, omit.fraction=.5))
+table(plants.fm2,ifelse(pr,'treated', 'control'))
+@
+
+\bigskip
+
+
+If before we had a total of 19 controls, of them all were
+matched, now we have matched only 10 of them. The first nine rows of
+the above table are not matched sets, but rather indicators for
+unmatched controls. Controls H, K, N, O, P, T, V, Y, and Z are now not
+matched to a treated subject. 
+
+
+\bigskip
+
+
+\textbf{Rounding}
+
+
+\bigskip
+
+
+If the matching is taking too long, increasing the \texttt{tol}
+argument may speed up the process.
+
+
+\bigskip
+
+\begin{description}
+\item[\texttt{tol}:] Because of internal rounding,
+'\texttt{fullmatch}' may solve a slightly different matching
+problem than the one specified, in which the match generated by
+\texttt{fullmatch} may not coincide with an optimal solution of
+the specified problem.  \texttt{tol} specifies the extent to
+which \texttt{fullmatch}'s output is permitted to differ from an
+optimal solution to the original problem, as measured by the sum
+of discrepancies for all treatments and controls placed into the
+same matched sets.
+\end{description}
+
+\bigskip
+
+
+\bigskip
+
+\textbf{Evaluating the quality of the match}
+
+Treatment{}-control balance by matched set
+
+\begin{description}
+\item[\texttt{stratumStructure:}] Tabulate treatment:control ratios occurring
+ in matched sets, and the frequency of their occurrence. 
+\end{description}
+
+<<>>=
+stratumStructure(plants.fm)
+table(plants.fm,ifelse(pr,'treated', 'control')) 
+@
+
+\bigskip
+
+In this unrestricted match, the number of controls per treatment
+subject varies widely. Such imbalance can be prevented as follows.
+
+
+\bigskip
+<<>>=
+plants.fm1 <- fullmatch(plant.dist,min.controls=2, max.controls=3)
+stratumStructure(plants.fm1)
+@
+
+
+
+
+
+Matched treatment{}-control distances:
+<<>>=
+unlist(matched.distances(plants.fm1, plant.dist))
+@
+
+Matched treatment{}-control distances, by matched set:
+<<>>=
+matched.distances(plants.fm1, plant.dist, TRUE)
+@ 
+For example, in m.6, we see that the biggest difference in the dates of
+F,U, and Z is the difference between U and Z: 71.08 {}- 69.50 = 1.58.
+
+\bigskip
+
+
+
+
+\textbf{Matched, Unmatched, and Matchfailed}
+
+
+\bigskip
+
+An easy way to check
+which plants were matched and unmatched is to use commands
+\texttt{matched()} and \texttt{unmatched()}. In
+our original matching attempt, full matching was performed so we
+see:
+
+
+\bigskip
+<<>>=
+matched(plants.fm)
+table(unmatched(plants.fm))
+@
+
+
+After we omitted half of our controls, however, the output is
+
+<<>>=
+table(matched(plants.fm2))
+table(unmatched(plants.fm2))
+@
+
+
+Names of the controls that were not matched can be
+  retrieved as follows:
+
+
+\bigskip
+
+<<>>=
+names(plants.fm2)[unmatched(plants.fm2)]
+@
+
+\bigskip
+
+
+When \texttt{fullmatch} has been presented with an inconsistent
+combination of constraints and discrepancies between potential matches,
+so that there exists no matching (i) with finite total discrepancy
+within matched sets that (ii) respects the given constraints, then the
+matching problem is said to be infeasible. TRUEs in the output
+of matchfailed indicate that this has occurred. 
+
+
+<<>>=
+table(matchfailed(fullmatch(plant.dist,min.controls=5)))
+@
+
+
+
+ To understand the output of matchfailed
+element{}-wise, note that \texttt{fullmatch} handles a matching problem
+in three steps. First, if \texttt{fullmatch} has been directed to match
+within subclasses, then it divides its matching problem into a
+subproblem for each subclass. Second, \texttt{fullmatch} removes from
+each subproblem those individual units that lack permissible potential
+matches (i.e. potential matches from which they are separated by a
+finite discrepancy). Such
+``isolated'' units are flagged in
+such a way as to be indicated by unmatched, but not by
+\texttt{matchfailed}. Third, \texttt{fullmatch}  presents each
+subproblem, with isolated elements removed, to an optimal matching
+routine. If such a reduced subproblem is found at this stage to be
+infeasible, then each unit contributing to it is so flagged as to be
+indicated by \texttt{matchfailed.}
+
+
+\bigskip
+
+In this case there were no inconsistencies in the constraints,
+so the command returns:
+
+<<>>=
+table(matchfailed(plants.fm))
+detach()
+@
+
+\bibliographystyle{plainnat}
+%\bibliography{abbrev_long,causalinference,computing}
+\begin{thebibliography}{5}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{{\tt #1}}\fi
+
+\bibitem[Gu and Rosenbaum(1993)]{gu:rose:1993}
+X.S. Gu and Paul~R. Rosenbaum.
+\newblock Comparison of multivariate matching methods: Structures, distances,
+  and algorithms.
+\newblock {\em Journal of Computational and Graphical Statistics}, 2\penalty0
+  (4):\penalty0 405--420, 1993.
+
+\bibitem[Hansen(2004)]{Hansen:2004}
+Ben~B. Hansen.
+\newblock Full matching in an observational study of coaching for the {SAT}.
+\newblock {\em Journal of the American Statistical Association}, 99\penalty0
+  (467):\penalty0 609--618, September 2004.
+
+\bibitem[Hansen and Klopfer(2006)]{hansen:klopfer:2006}
+Ben~B. Hansen and Stephanie~Olsen Klopfer.
+\newblock Optimal full matching and related designs via network flows.
+\newblock {\em Journal of Computational and Graphical Statistics}, 15\penalty0
+  (3):\penalty0 609--627, 2006.
+\newblock URL
+  \url{http://www.stat.lsa.umich.edu/\%7Ebbh/hansenKlopfer2006.pdf}.
+
+\bibitem[Rosenbaum(1991)]{rosenbaum:1991a}
+Paul~R. Rosenbaum.
+\newblock A characterization of optimal designs for observational studies.
+\newblock {\em Journal of the Royal Statistical Society}, 53:\penalty0 597--
+  610, 1991.
+
+\bibitem[Rosenbaum(2002)]{rosenbaum:2002}
+Paul~R. Rosenbaum.
+\newblock {\em Observational Studies}.
+\newblock Springer-Verlag, second edition, 2002.
+
+\end{thebibliography}
+
+
+\end{document}
