@@ -141,6 +141,8 @@ solve_reg_fm_prob <- function(node_info,
                 temp[["MCFSolution"]]@subproblems[1L, "lagrangian_value"]
             evaluate_dual(dm, temp[["MCFSolution"]]) ->
                 temp[["MCFSolution"]]@subproblems[1L,   "dual_value"    ]
+            evaluate_primal(dm, temp[["MCFSolution"]]) ->
+              temp[["MCFSolution"]]@subproblems[1L,   "primal_value"]
             nodeinfo(temp[["MCFSolution"]])  <-
                 update(node_info, nodeinfo(temp[["MCFSolution"]]))
             }
