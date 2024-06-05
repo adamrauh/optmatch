@@ -126,10 +126,13 @@ solve_reg_fm_prob <- function(node_info,
 
     if (!is.null(temp[["MCFSolution"]]))
         {
-            temp <- updateSubProbInfoMetadata(temp, dm,
-                                               min.cpt = min.cpt,
-                                               max.cpt = max.cpt,
-                                               omit.fraction = omit.fraction)
+            temp[["MCFSolution"]] <- trackSubProblemInfoConstraints(temp[["MCFSolution"]],
+                                              dm,
+                                              maxerr = temp$maxerr,
+                                              feasibility = any(temp$solutions==1L),
+                                              min.cpt = min.cpt,
+                                              max.cpt = max.cpt,
+                                              omit.fraction = omit.fraction)
             nodeinfo(temp[["MCFSolution"]])  <-
                 update(node_info, nodeinfo(temp[["MCFSolution"]]))
             }

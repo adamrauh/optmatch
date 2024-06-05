@@ -50,7 +50,7 @@ URL: http://optmat.ch, https://github.com/markmfredrickson/optmatch
 BugReports: https://github.com/markmfredrickson/optmatch/issues
 Additional_repositories: https://errickson.net/rrelaxiv
 Collate:
-    'updateSubProbInfo.R'
+    'SubProbInfoMetadata.R'
     'DenseMatrix.R'
     'InfinitySparseMatrix.R'
     'MCFSolutions.R'
