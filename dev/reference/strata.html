@@ -86,6 +86,7 @@ when defining an <code>exactMatch</code> during a call to <code>fullmatch</code>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">nuclearplants</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fullmatch.html">fullmatch</a></span><span class="op">(</span><span class="va">pr</span> <span class="op">~</span> <span class="va">cost</span> <span class="op">+</span> <span class="fu">strata</span><span class="op">(</span><span class="va">pt</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">nuclearplants</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Coercing LHS to a list</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   H   I   A   J   B   K   L   M   C   N   O   P   Q   R   S   T   U   D   V   E </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 0.3 0.3 0.1 0.2 0.2 0.4 0.4 0.4 0.3 0.6 0.4 0.1 0.1 0.5 0.1 0.1 0.6 0.4 0.6 0.5 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   W   F   X   G   Y   Z   d   e   f   a   b   c </span>
