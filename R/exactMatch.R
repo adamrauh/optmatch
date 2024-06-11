@@ -164,7 +164,15 @@ setMethod(exactMatch, "formula", function(x, data = NULL, subset = NULL, na.acti
 
   # formula is expected to be Z ~ B, where b is the blocking factor
   # and Z is treatment, Z ~ B1 + B2 ... is also allowed
-  exactMatch(blocking, treatment) # use the factor based method
+  # use the units to stitch this back together without relying on ordering
+  groupTable <- mf[, -1]
+  groupTable$group <- blocking[match(rownames(groupTable), names(blocking))]
+  # then just strip it down to the combinations of variables + corresponding groups
+  groupTable <- unique(groupTable)
+  rownames(groupTable) <- NULL
+  rem <- exactMatch(blocking, treatment) # use the factor based method
+  attr(rem, "groupTable") <- groupTable
+  return(rem)
 })
 
 #' Specify a matching problem where units in a common factor cannot be matched.

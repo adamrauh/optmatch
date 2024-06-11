@@ -260,6 +260,8 @@ fullmatch.default <- function(x,
                    solver=solver,
                    ...)
   attr(out, "call") <- match.call()
+  attr(attr(out, "MCFSolutions")@subproblems,
+       "groupTable") <- attr(m, "groupTable")
   out
 }
 
