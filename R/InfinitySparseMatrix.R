@@ -808,6 +808,7 @@ sort.BlockedInfinitySparseMatrix <- function(x,
                                              byCol=FALSE) {
   y <- sort.InfinitySparseMatrix(x, decreasing=decreasing, byCol=byCol)
   attr(y, "groups") <- attr(x, "groups")
+  attr(y, "groupTable") <- attr(x, "groupTable")
   class(y) <- class(x)
   y
 }

@@ -260,8 +260,12 @@ fullmatch.default <- function(x,
                    solver=solver,
                    ...)
   attr(out, "call") <- match.call()
-  attr(attr(out, "MCFSolutions")@subproblems,
-       "groupTable") <- attr(m, "groupTable")
+  # if (!is.null(attr(out, "MCFSolutions")))
+  # {
+  #   attr(attr(out, "MCFSolutions")@subproblems,
+  #        "groupTable") <- attr(m, "groupTable")
+  # }
+
   out
 }
 
@@ -697,6 +701,11 @@ fullmatch.matrix <- function(x,
     warning(paste("At least one subproblem matching failed.\n",
                   "(Restrictions impossible to meet?)\n",
                   "Enter ?matchfailed for more info."))
+  }
+  if (!is.null(attr(mout, "MCFSolutions")))
+  {
+    attr(attr(mout, "MCFSolutions")@subproblems,
+         "groupTable") <- attr(x, "groupTable")
   }
 
   return(mout)

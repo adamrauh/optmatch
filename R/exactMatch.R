@@ -165,7 +165,7 @@ setMethod(exactMatch, "formula", function(x, data = NULL, subset = NULL, na.acti
   # formula is expected to be Z ~ B, where b is the blocking factor
   # and Z is treatment, Z ~ B1 + B2 ... is also allowed
   # use the units to stitch this back together without relying on ordering
-  groupTable <- mf[, -1]
+  groupTable <- mf[, -1, drop = FALSE]
   groupTable$group <- blocking[match(rownames(groupTable), names(blocking))]
   # then just strip it down to the combinations of variables + corresponding groups
   groupTable <- unique(groupTable)
